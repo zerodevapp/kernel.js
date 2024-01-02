@@ -189,15 +189,14 @@ export async function createKernelAccount<
             enableData: plugin.getEnableData()
         })
 
-    // Fetch account address and chain id
-    const [accountAddress] = await Promise.all([
+    // Fetch account address
+    const accountAddress =
         deployedAccountAddress ??
-            getAccountAddress<TTransport, TChain>({
-                client,
-                entryPoint,
-                initCodeProvider: generateInitCode
-            })
-    ])
+        (await getAccountAddress<TTransport, TChain>({
+            client,
+            entryPoint,
+            initCodeProvider: generateInitCode
+        }))
 
     if (!accountAddress) throw new Error("Account address not found")
 
