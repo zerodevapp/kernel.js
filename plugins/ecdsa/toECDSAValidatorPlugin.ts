@@ -15,10 +15,9 @@ import {
 } from "viem"
 import { toAccount } from "viem/accounts"
 import { signMessage, signTypedData } from "viem/actions"
-import { getChainId } from "viem/actions"
 import { ECDSA_VALIDATOR_ADDRESS } from "./index"
 
-export async function signerToEcdsaValidator<
+export function signerToEcdsaValidator<
     TTransport extends Transport = Transport,
     TChain extends Chain | undefined = Chain | undefined,
     TSource extends string = "custom",
@@ -34,7 +33,7 @@ export async function signerToEcdsaValidator<
         entryPoint?: Address
         validatorAddress?: Address
     }
-): Promise<KernelPlugin<"ECDSAValidator", TTransport, TChain>> {
+): KernelPlugin<"ECDSAValidator", TTransport, TChain> {
     // Get the private key related account
     const viemSigner: LocalAccount = {
         ...signer,
@@ -42,9 +41,6 @@ export async function signerToEcdsaValidator<
             throw new SignTransactionNotSupportedBySmartAccount()
         }
     } as LocalAccount
-
-    // Fetch chain id
-    const chainId = await getChainId(client)
 
     // Build the EOA Signer
     const account = toAccount({
@@ -59,6 +55,12 @@ export async function signerToEcdsaValidator<
             return signTypedData(client, { account: viemSigner, ...typedData })
         }
     })
+
+    if (!client.chain) {
+        throw new Error("Chain not found")
+    }
+
+    const chainId = client.chain.id
 
     return {
         ...account,
@@ -82,7 +84,7 @@ export async function signerToEcdsaValidator<
                     signature: "0x"
                 },
                 entryPoint: entryPoint,
-                chainId: chainId
+                chainId
             })
             const signature = await signMessage(client, {
                 account: viemSigner,
