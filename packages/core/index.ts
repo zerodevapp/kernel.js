@@ -20,3 +20,5 @@ export {
     type KernelPlugin,
     type ZeroDevPaymasterRpcSchema
 } from "./types/kernel"
+export { KernelAccountAbi } from "./accounts/kernel/abi/KernelAccountAbi"
+export * as constants from "./constants"
