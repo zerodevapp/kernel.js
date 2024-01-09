@@ -8,7 +8,10 @@ import {
     type Chain,
     type Client,
     type EncodeDeployDataParameters,
+    type Hash,
     type Hex,
+    type PublicClient,
+    type SignableMessage,
     type Transport,
     concatHex,
     encodeDeployData,
@@ -19,6 +22,7 @@ import { toAccount } from "viem/accounts"
 import { getBytecode, signMessage, signTypedData } from "viem/actions"
 import type { KernelPlugin } from "../../types/kernel"
 import { KernelExecuteAbi, KernelInitAbi } from "./abi/KernelAccountAbi.js"
+import { isAccountDeployed, wrapSignatureWith6492 } from "./utils.js"
 
 export type CallType = "call" | "delegatecall"
 
@@ -41,6 +45,9 @@ export type KernelSmartAccount<
     chain extends Chain | undefined = Chain | undefined
 > = SmartAccount<"kernelSmartAccount", transport, chain> & {
     encodeCallData: (args: KernelEncodeCallDataArgs) => Promise<Hex>
+    signMessageWith6492: ({
+        message
+    }: { message: SignableMessage }) => Promise<Hash>
 }
 
 /**
@@ -343,6 +350,24 @@ export async function createKernelAccount<
             }
 
             throw new Error("Invalid call type")
+        },
+
+        async signMessageWith6492({ message }: { message: SignableMessage }) {
+            let sig = await account.signMessage({ message })
+            if (
+                !(await isAccountDeployed(
+                    client as PublicClient<TTransport, TChain>,
+                    accountAddress
+                ))
+            ) {
+                sig = wrapSignatureWith6492({
+                    factoryAddress: factoryAddress,
+                    factoryCalldata: await generateInitCode(),
+                    signature: sig
+                })
+            }
+
+            return sig
         },
 
         // Get simple dummy signature

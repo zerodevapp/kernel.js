@@ -5,6 +5,7 @@ import {
     KernelSmartAccount,
     createKernelAccount
 } from "@kerneljs/core"
+import { verifyEIP6492Signature } from "@kerneljs/core/accounts"
 import { signerToEcdsaValidator } from "@kerneljs/ecdsa-validator"
 import dotenv from "dotenv"
 import { BundlerClient } from "permissionless"
@@ -21,9 +22,10 @@ import {
     Transport,
     decodeEventLog,
     getContract,
+    hashMessage,
     zeroAddress
 } from "viem"
-import { privateKeyToAccount } from "viem/accounts"
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
 import { EntryPointAbi } from "./abis/EntryPoint.js"
 import { GreeterAbi, GreeterBytecode } from "./abis/Greeter.js"
 import {
@@ -75,7 +77,7 @@ const TX_HASH_REGEX = /^0x[0-9a-fA-F]{64}$/
 const TEST_TIMEOUT = 1000000
 
 describe("ECDSA kernel Account", () => {
-    let account: SmartAccount
+    let account: KernelSmartAccount
     let publicClient: PublicClient
     let bundlerClient: BundlerClient
     let kernelClient: KernelAccountClient<Transport, Chain, KernelSmartAccount>
@@ -95,6 +97,24 @@ describe("ECDSA kernel Account", () => {
                 })
             }
         })
+    })
+
+    test("Undeployed account can sign 6492 messages", async () => {
+        const privateKey = generatePrivateKey()
+        const randomAccount = await getSignerToEcdsaKernelAccount(privateKey)
+
+        const message = "hello 6492"
+        const messageHash = hashMessage(message)
+
+        const signature = await randomAccount.signMessageWith6492({ message })
+
+        const verified = await verifyEIP6492Signature({
+            signer: randomAccount.address,
+            hash: messageHash,
+            signature: signature,
+            client: publicClient
+        })
+        expect(verified).toBeTrue()
     })
 
     test("Account address should be a valid Ethereum address", async () => {

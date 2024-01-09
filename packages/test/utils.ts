@@ -1,15 +1,11 @@
 import {
+    type KernelSmartAccount,
+    createKernelAccount,
     createKernelAccountClient,
     createZeroDevPaymasterClient
 } from "@kerneljs/core"
-import { createKernelAccount } from "@kerneljs/core/accounts"
 import { signerToEcdsaValidator } from "@kerneljs/ecdsa-validator"
-import {
-    BundlerClient,
-    SmartAccountClient,
-    createBundlerClient,
-    createSmartAccountClient
-} from "permissionless"
+import { BundlerClient, createBundlerClient } from "permissionless"
 import {
     type SmartAccount,
     signerToSimpleSmartAccount
@@ -80,28 +76,26 @@ export const getSignerToSimpleSmartAccount =
         })
     }
 
-export const getSignerToEcdsaKernelAccount =
-    async (): Promise<SmartAccount> => {
-        const privateKey = process.env.TEST_PRIVATE_KEY as Hex
-        if (!privateKey) {
-            throw new Error("TEST_PRIVATE_KEY environment variable not set")
-        }
-
-        const publicClient = await getPublicClient()
-        const signer = privateKeyToAccount(privateKey)
-        const ecdsaValidatorPlugin = await signerToEcdsaValidator(
-            publicClient,
-            {
-                entryPoint: getEntryPoint(),
-                signer: { ...signer, source: "local" as "local" | "external" }
-            }
-        )
-
-        return createKernelAccount(publicClient, {
-            entryPoint: getEntryPoint(),
-            plugin: ecdsaValidatorPlugin
-        })
+export const getSignerToEcdsaKernelAccount = async (
+    _privateKey?: Hex
+): Promise<KernelSmartAccount> => {
+    const privateKey = _privateKey ?? (process.env.TEST_PRIVATE_KEY as Hex)
+    if (!privateKey) {
+        throw new Error("TEST_PRIVATE_KEY environment variable not set")
     }
+
+    const publicClient = await getPublicClient()
+    const signer = privateKeyToAccount(privateKey)
+    const ecdsaValidatorPlugin = await signerToEcdsaValidator(publicClient, {
+        entryPoint: getEntryPoint(),
+        signer: { ...signer, source: "local" as "local" | "external" }
+    })
+
+    return createKernelAccount(publicClient, {
+        entryPoint: getEntryPoint(),
+        plugin: ecdsaValidatorPlugin
+    })
+}
 
 // export const getSignerToSafeSmartAccount = async (args?: {
 //   setupTransactions?: {
